@@ -1,0 +1,188 @@
+* { 
+  box-sizing: border-box; 
+  font-family: Inter, Roboto, Arial, sans-serif; 
+}
+
+body { 
+  background: #0f1724; 
+  color: #e6eef8; 
+  margin: 0; 
+  padding: 20px; 
+}
+
+.container { 
+  max-width: 1100px; 
+  margin: 0 auto; 
+}
+
+h1 { 
+  margin: 0 0 12px 0; 
+}
+
+.controls { 
+  display: flex; 
+  gap: 12px; 
+  align-items: center; 
+  margin-bottom: 12px; 
+}
+
+.controls label, 
+.controls button {
+  background: #1e293b;       
+  color: #ffffff;            
+  border: 1px solid #334155; 
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.controls button:hover {
+  background: #3b82f6;       
+  color: #fff;
+}
+
+
+.controls select, 
+.controls input[type=number] { 
+  background: #071029; 
+  color: #e6eef8; 
+  border: none; 
+  padding: 6px; 
+  width: 80px; 
+}
+
+.controls input[type=range] { 
+  width: 160px; 
+}
+
+.main { 
+  display: flex; 
+  gap: 12px; 
+}
+
+svg { 
+  background: linear-gradient(180deg, #081226, #051027); 
+  border-radius: 8px; 
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6); 
+}
+
+.panels { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 12px; 
+  width: 320px; 
+}
+
+.panel { 
+  background: #071029; 
+  padding: 12px; 
+  border-radius: 8px; 
+  min-height: 120px; 
+}
+
+.structure { 
+  display: flex; 
+  gap: 6px; 
+  flex-wrap: wrap; 
+}
+
+.structure .item { 
+  background: #0a2540; 
+  padding: 8px 10px; 
+  border-radius: 6px; 
+  min-width: 36px; 
+  text-align: center; 
+}
+
+.log { 
+  background: #021322; 
+  padding: 8px; 
+  border-radius: 6px; 
+  max-height: 220px; 
+  overflow: auto; 
+}
+
+.editor { 
+  margin-top: 12px; 
+}
+
+textarea { 
+  width: 100%; 
+  border-radius: 8px; 
+  padding: 8px; 
+  background: #021322; 
+  color: #e6eef8; 
+  border: none; 
+}
+
+/* === Node base styles === */
+.node { 
+  fill: #0ea5a3; 
+  stroke: #075a59; 
+  stroke-width: 2px; 
+  transition: fill 0.3s ease, stroke 0.3s ease;
+  filter: none;
+  transform: none;
+}
+
+/* Node states */
+.node.current { 
+  fill: #f59e0b; 
+  stroke: #c47a00; 
+}
+
+.node.visited { 
+  fill: #94f9e8; 
+  stroke: #0e9c89; 
+}
+
+.node.discovered { 
+  fill: #60a5fa; 
+  stroke: #2563eb; 
+}
+
+.node text { 
+  pointer-events: none; 
+}
+
+/* === Edges === */
+.edge { 
+  stroke: #5b6b78; 
+  stroke-width: 2px; 
+  transition: stroke 0.3s ease, stroke-width 0.3s ease;
+}
+
+/* === Highlighted edge (path traversal) === */
+.active-edge {
+  stroke: #fbbf24;          /* soft orange path color */
+  stroke-width: 3px;
+  filter: none !important;  /* remove glow */
+  transform: none !important;
+}
+
+/* === Highlighted node (discovered / traversed) === */
+.node-highlight {
+  fill: #fbbf24 !important; /* orange-yellow fill */
+  stroke: #f59e0b !important;
+  stroke-width: 3px;
+  filter: none !important;   /* 🚫 removes glow/halo */
+  transform: none !important;/* 🚫 no “jump out” animation */
+  transition: fill 0.2s ease, stroke 0.2s ease;
+}
+
+.controls label {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-weight: 500;
+  padding: 0;
+}
+
+
+footer { 
+  margin-top: 12px; 
+  color: #8b98a8; 
+}

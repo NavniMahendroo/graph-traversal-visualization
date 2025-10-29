@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BFS/DFS Traversal Visualizer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="container">
+    <h1>BFS / DFS Traversal Visualizer</h1>
+
+    <div class="controls">
+      <button id="addNodeBtn">Add Node</button>
+      <button id="addEdgeBtn">Add Edge</button>
+      <label for="edgeU">From:</label>
+      <input id="edgeU" type="number" min="0" placeholder="u">
+      <label for="edgeV">To:</label>
+      <input id="edgeV" type="number" min="0" placeholder="v">
+      <label>Algorithm:
+        <select id="algorithm">
+          <option value="bfs">BFS (Queue)</option>
+          <option value="dfs">DFS (Stack)</option>
+        </select>
+      </label>
+
+      <label>Start node:
+        <input id="startNode" type="number" min="0" value="0" />
+      </label>
+
+      <button id="startBtn">Start</button>
+      <button id="stepBtn">Step</button>
+      <button id="pauseBtn">Pause</button>
+      <label>Speed:
+        <input id="speed" type="range" min="100" max="2000" value="700" />
+      </label>
+    </div>
+
+    <div class="main">
+      <svg id="graph" width="700" height="500"></svg>
+
+      <div class="panels">
+        <div class="panel">
+          <h3 id="structureTitle">Queue</h3>
+          <div id="structure" class="structure"></div>
+
+          <h3>Traversal</h3>
+          <div id="traversal" class="structure"></div>
+        </div>
+
+
+        <div class="panel">
+          <h3>Log</h3>
+          <pre id="log" class="log"></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="editor">
+      <h3>Adjacency (edit graph)</h3>
+      <textarea id="adjacency" rows="6"></textarea>
+      <button id="loadGraph">Load Graph</button>
+    </div>
+
+    <footer>
+      <small>Nodes are numbered 0..n-1. Edit adjacency as JSON array of arrays, e.g. [[1,2],[0,3],[0],[1]]</small>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
