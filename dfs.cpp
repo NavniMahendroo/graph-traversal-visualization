@@ -1,50 +1,63 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-void dfs(const vector<vector<int>>& adj, int start) {
+void dfs(const vector<vector<int>>& adj, int start = 0) {
     int n = adj.size();
-    vector<bool> discovered(n,false), visited(n,false);
+    vector<bool> discovered(n, false), visited(n, false);
     vector<int> st;
-    st.push_back(start);
-    discovered[start] = true;
-    auto print_state = [&](const string& msg){
+
+    auto print_state = [&](const string& msg) {
         cout << msg << "\n";
         cout << "Stack: ";
-        for(auto it = st.rbegin(); it != st.rend(); ++it) cout << *it << " ";
+        for (auto it = st.rbegin(); it != st.rend(); ++it) cout << *it << " ";
         cout << "\nDiscovered: ";
-        for(int i=0;i<n;i++) if(discovered[i]) cout << i << " ";
+        for (int i = 0; i < n; i++) if (discovered[i]) cout << i << " ";
         cout << "\nVisited: ";
-        for(int i=0;i<n;i++) if(visited[i]) cout << i << " ";
+        for (int i = 0; i < n; i++) if (visited[i]) cout << i << " ";
         cout << "\n---\n";
     };
 
-    print_state("Init");
-    while(!st.empty()){
-        int u = st.back(); st.pop_back();
-        if(visited[u]) continue;
-        visited[u] = true;
-        print_state(string("Visit ") + to_string(u));
-        // push neighbors reverse order
-        for(auto it = adj[u].rbegin(); it != adj[u].rend(); ++it){
-            int v = *it;
-            if(!discovered[v]){
-                discovered[v] = true;
-                st.push_back(v);
-                print_state(string("Discover ") + to_string(v));
+    // Run DFS on each component
+    for (int i = 0; i < n; i++) {
+        int s = (i + start) % n;  // ensures we start from 'start' first if valid
+        if (!discovered[s]) {
+            cout << "\n=== Starting new component from " << s << " ===\n";
+            st.push_back(s);
+            discovered[s] = true;
+            print_state("Init");
+
+            while (!st.empty()) {
+                int u = st.back(); st.pop_back();
+                if (visited[u]) continue;
+                visited[u] = true;
+                print_state("Visit " + to_string(u));
+
+                for (auto it = adj[u].rbegin(); it != adj[u].rend(); ++it) {
+                    int v = *it;
+                    if (!discovered[v]) {
+                        discovered[v] = true;
+                        st.push_back(v);
+                        print_state("Discover " + to_string(v));
+                    }
+                }
             }
         }
     }
-    cout << "Done\n";
+
+    cout << "\nTraversal complete for all components.\n";
 }
 
-int main(){
+int main() {
+    // Example disconnected graph
     vector<vector<int>> adj = {
-        {1,2},
-        {0,2,3},
-        {0,1,3},
-        {1,2}
+        {1, 2},     // 0
+        {0, 2},     // 1
+        {0, 1},     // 2
+        {4},        // 3
+        {3, 5},     // 4
+        {4}         // 5
     };
-    cout << "DFS example starting at 0" << endl;
+
+    cout << "DFS traversal (works for disconnected graphs):\n";
     dfs(adj, 0);
-    return 0;
 }

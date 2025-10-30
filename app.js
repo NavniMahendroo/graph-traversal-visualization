@@ -107,58 +107,84 @@ function log(msg) {
   logEl.textContent = msg + '\n' + logEl.textContent;
 }
 
-// === BFS generator ===
+// === BFS generator (supports disconnected graphs) ===
 function* bfs(adj, start) {
   const n = adj.length;
   const visited = Array(n).fill(false);
   const discovered = Array(n).fill(false);
   const q = [];
-  q.push(start);
-  discovered[start] = true;
-  yield { type: 'init', queue: q.slice(), discovered: discovered.slice(), visited: visited.slice(), current: null };
-  while (q.length > 0) {
-    const u = q.shift();
-    visited[u] = true;
-    yield { type: 'visit', node: u, queue: q.slice(), discovered: discovered.slice(), visited: visited.slice(), current: u };
-    for (const v of adj[u]) {
-      if (!discovered[v]) {
-        discovered[v] = true;
-        q.push(v);
-        yield { type: 'discover', node: v, from: u, queue: q.slice(), discovered: discovered.slice(), visited: visited.slice(), current: u };
+
+  function* bfsComponent(s) {
+    q.push(s);
+    discovered[s] = true;
+    yield { type: 'init', queue: q.slice(), discovered: discovered.slice(), visited: visited.slice(), current: null };
+
+    while (q.length > 0) {
+      const u = q.shift();
+      visited[u] = true;
+      yield { type: 'visit', node: u, queue: q.slice(), discovered: discovered.slice(), visited: visited.slice(), current: u };
+      for (const v of adj[u]) {
+        if (!discovered[v]) {
+          discovered[v] = true;
+          q.push(v);
+          yield { type: 'discover', node: v, from: u, queue: q.slice(), discovered: discovered.slice(), visited: visited.slice(), current: u };
+        }
       }
     }
   }
+
+  // Run BFS for all disconnected components
+  for (let i = 0; i < n; i++) {
+    const s = (i + start) % n;
+    if (!discovered[s]) {
+      yield* bfsComponent(s);
+    }
+  }
+
   yield { type: 'done', queue: [], discovered: discovered.slice(), visited: visited.slice(), current: null };
 }
 
-// === DFS generator ===
+// === DFS generator (supports disconnected graphs) ===
 function* dfs(adj, start) {
   const n = adj.length;
   const visited = Array(n).fill(false);
   const discovered = Array(n).fill(false);
   const st = [];
-  st.push(start);
-  discovered[start] = true;
-  yield { type: 'init', stack: st.slice(), discovered: discovered.slice(), visited: visited.slice(), current: null };
-  while (st.length > 0) {
-    const u = st.pop();
-    if (visited[u]) continue;
-    visited[u] = true;
-    yield { type: 'visit', node: u, stack: st.slice(), discovered: discovered.slice(), visited: visited.slice(), current: u };
-    const neighbors = adj[u].slice().reverse();
-    for (const v of neighbors) {
-      if (!discovered[v]) {
-        discovered[v] = true;
-        st.push(v);
-        yield { type: 'discover', node: v, from: u, stack: st.slice(), discovered: discovered.slice(), visited: visited.slice(), current: u };
+
+  function* dfsComponent(s) {
+    st.push(s);
+    discovered[s] = true;
+    yield { type: 'init', stack: st.slice(), discovered: discovered.slice(), visited: visited.slice(), current: null };
+
+    while (st.length > 0) {
+      const u = st.pop();
+      if (visited[u]) continue;
+      visited[u] = true;
+      yield { type: 'visit', node: u, stack: st.slice(), discovered: discovered.slice(), visited: visited.slice(), current: u };
+
+      const neighbors = adj[u].slice().reverse();
+      for (const v of neighbors) {
+        if (!discovered[v]) {
+          discovered[v] = true;
+          st.push(v);
+          yield { type: 'discover', node: v, from: u, stack: st.slice(), discovered: discovered.slice(), visited: visited.slice(), current: u };
+        }
       }
     }
   }
+
+  // Run DFS for all disconnected components
+  for (let i = 0; i < n; i++) {
+    const s = (i + start) % n;
+    if (!discovered[s]) {
+      yield* dfsComponent(s);
+    }
+  }
+
   yield { type: 'done', stack: [], discovered: discovered.slice(), visited: visited.slice(), current: null };
 }
 
 function highlightEdge(u, v) {
-  // highlight connecting edge
   const lines = svg.querySelectorAll('.edge');
   lines.forEach(line => {
     const lu = Number(line.getAttribute('data-u'));
@@ -169,7 +195,6 @@ function highlightEdge(u, v) {
     }
   });
 
-  // highlight destination node
   const targetCircle = svg.querySelector(`.node[data-id="${v}"]`);
   if (targetCircle) {
     targetCircle.classList.add('node-highlight');
@@ -189,20 +214,16 @@ function applyStateFromStep(step) {
     state.nodes[step.current].status = 'current';
   render();
 
-  // === highlight traversal edge ===
   if (step.type === 'discover' && step.from !== undefined && step.node !== undefined) {
     highlightEdge(step.from, step.node);
   }
-  // === re-highlight edge when node is actually visited ===
   if (step.type === 'visit' && step.current !== null && step.current !== undefined) {
-    // Find which edge led to this visited node
-    const prev = traversalOrder[traversalOrder.length - 1]; // previously visited node
+    const prev = traversalOrder[traversalOrder.length - 1];
     if (prev !== undefined && prev !== step.current) {
       highlightEdge(prev, step.current);
     }
   }
 
-  // === show Queue or Stack ===
   structureEl.innerHTML = '';
   const arr = step.queue ?? step.stack ?? [];
   arr.forEach((val) => {
@@ -212,7 +233,6 @@ function applyStateFromStep(step) {
     structureEl.appendChild(d);
   });
 
-  // === traversal update ===
   if (step.type === 'visit' && step.node !== undefined) {
     traversalOrder.push(step.node);
   }
@@ -224,7 +244,6 @@ function applyStateFromStep(step) {
     traversalEl.appendChild(d);
   });
 
-  // === logging ===
   if (step.type === 'init') log(`Init: ${arr.join(', ')}`);
   else if (step.type === 'discover') log(`Discovered ${step.node} (from ${step.current}) -> ${arr.join(', ')}`);
   else if (step.type === 'visit') log(`Visited ${step.node} | ${arr.join(', ')}`);
@@ -233,41 +252,29 @@ function applyStateFromStep(step) {
 
 function startTraversalLoop() {
   if (state.timer) clearInterval(state.timer);
-  
   const stepFunction = () => {
     if (!state.running) return;
-    
     const res = state.generator.next();
-    
     if (res.done) {
       state.running = false;
       clearInterval(state.timer);
       applyStateFromStep(res.value || { type: 'done', queue: [], stack: [], discovered: [], visited: [] });
       return;
     }
-    
     applyStateFromStep(res.value);
   };
-  
   const delay = getDelay();
   state.timer = setInterval(stepFunction, delay);
 }
 
 function getDelay() {
   const sliderVal = Number(speedEl.value);
-
-  // Map 100–2000 → delay (slow → fast)
-  // 100 (left)   → 2500ms (very slow)
-  // 700 (middle) → 1000ms (readable)
-  // 2000 (right) → 300ms (fast)
-
   let delay;
   if (sliderVal <= 700) {
-    delay = 2500 - ((sliderVal - 100) / 600) * 1500; 
+    delay = 2500 - ((sliderVal - 100) / 600) * 1500;
   } else {
     delay = 1000 - ((sliderVal - 700) / 1300) * 700;
   }
-
   delay = Math.max(300, delay);
   return delay;
 }
@@ -300,7 +307,6 @@ function startTraversal() {
 
   const step = state.generator.next().value;
   applyStateFromStep(step);
-
   startTraversalLoop();
 }
 
@@ -326,7 +332,6 @@ pauseBtn.addEventListener('click', () => {
     alert('Start traversal first');
     return;
   }
-
   if (state.running) {
     state.running = false;
     clearInterval(state.timer);
@@ -351,24 +356,19 @@ speedEl.addEventListener('input', () => {
     startTraversalLoop();
   }
 });
+
 // === Add Node ===
 const addNodeBtn = document.getElementById('addNodeBtn');
 addNodeBtn.addEventListener('click', () => {
   try {
     const adj = JSON.parse(adjacencyEl.value);
     const n = adj.length;
-
-    // Add new node (empty adjacency list)
     adj.push([]);
-
-    // Keep JSON in one line
     adjacencyEl.value = JSON.stringify(adj);
     adjacency = adj;
-
     state.nodes = buildGraphFromAdj(adj).nodes;
     state.edges = buildGraphFromAdj(adj).edges;
     render();
-
     log(`Added node ${n}`);
   } catch (e) {
     alert('Invalid adjacency list');
@@ -380,11 +380,9 @@ const addEdgeBtn = document.getElementById('addEdgeBtn');
 addEdgeBtn.addEventListener('click', () => {
   const u = Number(document.getElementById('edgeU').value);
   const v = Number(document.getElementById('edgeV').value);
-
   try {
     const adj = JSON.parse(adjacencyEl.value);
     const n = adj.length;
-
     if (u < 0 || v < 0 || u >= n || v >= n) {
       alert('Node indices out of range');
       return;
@@ -393,19 +391,13 @@ addEdgeBtn.addEventListener('click', () => {
       alert('Self-loops not allowed');
       return;
     }
-
-    // Avoid duplicates
     if (!adj[u].includes(v)) adj[u].push(v);
     if (!adj[v].includes(u)) adj[v].push(u);
-
-    // Keep JSON compact
     adjacencyEl.value = JSON.stringify(adj);
     adjacency = adj;
-
     state.nodes = buildGraphFromAdj(adj).nodes;
     state.edges = buildGraphFromAdj(adj).edges;
     render();
-
     log(`Added edge ${u}–${v}`);
   } catch (e) {
     alert('Invalid adjacency list');
