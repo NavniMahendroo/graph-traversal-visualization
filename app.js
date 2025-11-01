@@ -19,10 +19,19 @@ const traversalEl = document.getElementById('traversal');
 const graphTypeEl = document.getElementById('graphType');
 let isDirected = graphTypeEl.value === 'directed';
 
+// Track if nodes have been dragged (to switch from polygon to free layout)
+let nodesDragged = false;
+
 // Drag state
 let draggingNode = null;
 let dragOffset = { x: 0, y: 0 };
 let isPointerDown = false;
+
+// Function to reset edge input fields to default values
+function resetEdgeInputs() {
+  document.getElementById('edgeU').value = 'u';
+  document.getElementById('edgeV').value = 'v';
+}
 
 graphTypeEl.addEventListener('change', () => {
   isDirected = graphTypeEl.value === 'directed';
@@ -39,6 +48,11 @@ graphTypeEl.addEventListener('change', () => {
 
   state.nodes = buildGraphFromAdj(adjacency).nodes;
   state.edges = buildGraphFromAdj(adjacency).edges;
+  nodesDragged = false; // Reset drag state when graph type changes
+  
+  // Reset edge input fields to default
+  resetEdgeInputs();
+  
   render();
 });
 
@@ -66,8 +80,6 @@ let state = {
 };
 
 function buildGraphFromAdj(adj) {
-  // This function preserves existing node positions (if present in state.nodes)
-  // and assigns circular positions only for nodes that don't have coords yet.
   const n = adj.length;
   const nodes = [];
   const edges = [];
@@ -75,15 +87,26 @@ function buildGraphFromAdj(adj) {
   const H = svg.clientHeight || 500;
   const cx = W / 2, cy = H / 2, r = Math.min(W, H) / 2 - 70;
 
+  // If nodes have been dragged, use their current positions
+  // Otherwise, arrange in polygon shape
+  const hasDraggedNodes = state.nodes.some(node => node.dragged) || nodesDragged;
+  
   for (let i = 0; i < n; i++) {
-    // reuse existing coordinates if present (so dragged positions persist)
-    if (state.nodes && state.nodes[i] && typeof state.nodes[i].x === 'number' && typeof state.nodes[i].y === 'number') {
-      nodes.push({ id: i, x: state.nodes[i].x, y: state.nodes[i].y, status: state.nodes[i].status || 'idle' });
+    // reuse existing coordinates if present and nodes have been dragged
+    if (hasDraggedNodes && state.nodes && state.nodes[i] && typeof state.nodes[i].x === 'number' && typeof state.nodes[i].y === 'number') {
+      nodes.push({ 
+        id: i, 
+        x: state.nodes[i].x, 
+        y: state.nodes[i].y, 
+        status: state.nodes[i].status || 'idle',
+        dragged: true 
+      });
     } else {
+      // Arrange in polygon shape for new graphs
       const theta = (i / Math.max(1, n)) * Math.PI * 2 - Math.PI / 2;
       const x = cx + r * Math.cos(theta);
       const y = cy + r * Math.sin(theta);
-      nodes.push({ id: i, x, y, status: 'idle' });
+      nodes.push({ id: i, x, y, status: 'idle', dragged: false });
     }
   }
 
@@ -184,6 +207,10 @@ function render() {
       dragOffset.x = state.nodes[n.id].x - pt.x;
       dragOffset.y = state.nodes[n.id].y - pt.y;
 
+      // Mark that nodes have been dragged
+      nodesDragged = true;
+      state.nodes[n.id].dragged = true;
+
       // add a capturing listener so the window receives the mouse up even if pointer leaves svg
       window.addEventListener('mouseup', onWindowMouseUp);
     });
@@ -198,6 +225,11 @@ function render() {
       const pt = svgPointFromEvent(fakeEvent);
       dragOffset.x = state.nodes[n.id].x - pt.x;
       dragOffset.y = state.nodes[n.id].y - pt.y;
+      
+      // Mark that nodes have been dragged
+      nodesDragged = true;
+      state.nodes[n.id].dragged = true;
+      
       window.addEventListener('touchend', onWindowTouchEnd);
     });
 
@@ -240,6 +272,7 @@ window.addEventListener('mousemove', (e) => {
   // update node coordinates (clamp inside svg bounds if desired)
   state.nodes[draggingNode].x = nx;
   state.nodes[draggingNode].y = ny;
+  state.nodes[draggingNode].dragged = true;
   // re-render to update edges & nodes; this keeps other UI intact
   render();
 });
@@ -253,6 +286,7 @@ window.addEventListener('touchmove', (e) => {
   const ny = pt.y + dragOffset.y;
   state.nodes[draggingNode].x = nx;
   state.nodes[draggingNode].y = ny;
+  state.nodes[draggingNode].dragged = true;
   render();
 });
 
@@ -539,9 +573,12 @@ addNodeBtn.addEventListener('click', () => {
     adj.push([]);
     adjacencyEl.value = JSON.stringify(adj);
     adjacency = adj;
-    // buildGraphFromAdj will reuse existing node coords and add the new node with a circular default
-    state.nodes = buildGraphFromAdj(adj).nodes;
-    state.edges = buildGraphFromAdj(adj).edges;
+    
+    // Build graph - new nodes will be arranged in polygon shape unless nodes have been dragged
+    const newGraph = buildGraphFromAdj(adj);
+    state.nodes = newGraph.nodes;
+    state.edges = newGraph.edges;
+    
     render();
     log(`Added node ${n}`);
   } catch (e) {
@@ -573,18 +610,25 @@ addEdgeBtn.addEventListener('click', () => {
     state.edges = buildGraphFromAdj(adj).edges;
     render();
     log(`Added edge ${u}${isDirected ? '→' : '–'}${v}`);
+    
+    // ✅ Reset edge input fields to default after adding edge
+    resetEdgeInputs();
   } catch (e) {
     alert('Invalid adjacency list');
   }
 });
 
+// Initialize with empty graph and reset edge inputs to default
 state.nodes = buildGraphFromAdj(adjacency).nodes;
 state.edges = buildGraphFromAdj(adjacency).edges;
+resetEdgeInputs(); // Set initial state to 'u' and 'v'
 render();
 
 window.addEventListener('resize', () => {
-  // keep current positions but rebuild internal arrays (will preserve dragged positions)
-  state.nodes = buildGraphFromAdj(adjacency).nodes;
-  state.edges = buildGraphFromAdj(adjacency).edges;
-  render();
+  // Only rearrange if nodes haven't been dragged
+  if (!nodesDragged) {
+    state.nodes = buildGraphFromAdj(adjacency).nodes;
+    state.edges = buildGraphFromAdj(adjacency).edges;
+    render();
+  }
 });
