@@ -44,7 +44,6 @@ h1 {
   color: #fff;
 }
 
-
 .controls select, 
 .controls input[type=number] { 
   background: #071029; 
@@ -69,6 +68,7 @@ svg {
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6); 
 }
 
+/* ==== PANELS ==== */
 .panels { 
   display: flex; 
   flex-direction: column; 
@@ -159,18 +159,39 @@ textarea {
 .active-edge {
   stroke: #fbbf24;          /* soft orange path color */
   stroke-width: 3px;
-  filter: none !important;  /* remove glow */
+  filter: none !important;
   transform: none !important;
 }
 
 /* === Highlighted node (discovered / traversed) === */
 .node-highlight {
-  fill: #fbbf24 !important; /* orange-yellow fill */
+  fill: #fbbf24 !important; 
   stroke: #f59e0b !important;
   stroke-width: 3px;
-  filter: none !important;   /* 🚫 removes glow/halo */
-  transform: none !important;/* 🚫 no “jump out” animation */
+  filter: none !important;  
+  transform: none !important;
   transition: fill 0.2s ease, stroke 0.2s ease;
+}
+
+/* === Directed Graph Arrowheads === */
+.marker-arrow {
+  fill: #5b6b78; 
+  transition: fill 0.3s ease;
+}
+
+.edge.active-edge + .marker-arrow,
+.edge.active-edge ~ .marker-arrow {
+  fill: #fbbf24;  /* Highlight arrow when edge is active */
+}
+
+/* === Directed Edge Hover === */
+.edge:hover {
+  stroke: #3b82f6;
+  stroke-width: 3px;
+}
+
+.marker-arrow:hover {
+  fill: #3b82f6;
 }
 
 .controls label {
@@ -180,7 +201,13 @@ textarea {
   font-weight: 500;
   padding: 0;
 }
-
+.graph-placeholder {
+  fill: #64748b;      /* soft gray-blue */
+  font-size: 20px;
+  font-weight: 600;
+  opacity: 0.6;
+  pointer-events: none;
+}
 
 footer { 
   margin-top: 12px; 

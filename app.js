@@ -13,7 +13,30 @@ const algorithmEl = document.getElementById('algorithm');
 const startNodeEl = document.getElementById('startNode');
 const speedEl = document.getElementById('speed');
 const panelTitle = document.querySelector('.panel h3');
-const traversalEl = document.getElementById('traversal'); // ✅ traversal container
+const traversalEl = document.getElementById('traversal'); 
+
+// ✅ Graph type toggle (Directed/Undirected)
+const graphTypeEl = document.getElementById('graphType');
+let isDirected = graphTypeEl.value === 'directed';
+
+graphTypeEl.addEventListener('change', () => {
+  isDirected = graphTypeEl.value === 'directed';
+  log(`Graph type changed to ${isDirected ? 'Directed' : 'Undirected'}`);
+
+  // ✅ reset everything to blank when switching graph type
+  adjacency = [];
+  adjacencyEl.value = JSON.stringify(adjacency);
+
+  traversalOrder = [];
+  traversalEl.innerHTML = '';
+  structureEl.innerHTML = '';
+  logEl.textContent = '';
+
+  state.nodes = buildGraphFromAdj(adjacency).nodes;
+  state.edges = buildGraphFromAdj(adjacency).edges;
+  render();
+});
+
 
 // Track traversal order
 let traversalOrder = [];
@@ -22,11 +45,11 @@ algorithmEl.addEventListener('change', () => {
   if (algorithmEl.value === 'bfs') panelTitle.textContent = 'Queue';
   else if (algorithmEl.value === 'dfs') panelTitle.textContent = 'Stack';
   traversalOrder = [];
-  traversalEl.innerHTML = ''; // clear traversal
+  traversalEl.innerHTML = '';
 });
 panelTitle.textContent = algorithmEl.value === 'bfs' ? 'Queue' : 'Stack';
 
-let adjacency = [[1, 2], [0, 2, 3], [0, 1, 3], [1, 2]]; // default graph
+let adjacency = [];
 adjacencyEl.value = JSON.stringify(adjacency);
 
 let state = {
@@ -44,19 +67,25 @@ function buildGraphFromAdj(adj) {
   const W = svg.clientWidth || 700;
   const H = svg.clientHeight || 500;
   const cx = W / 2, cy = H / 2, r = Math.min(W, H) / 2 - 70;
+
   for (let i = 0; i < n; i++) {
     const theta = (i / n) * Math.PI * 2 - Math.PI / 2;
     const x = cx + r * Math.cos(theta);
     const y = cy + r * Math.sin(theta);
     nodes.push({ id: i, x, y, status: 'idle' });
   }
+
   const seen = new Set();
   for (let u = 0; u < n; u++) {
     for (const v of adj[u]) {
-      const key = u < v ? `${u}-${v}` : `${v}-${u}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        edges.push({ u, v });
+      if (isDirected) {
+        edges.push({ u, v, directed: true });
+      } else {
+        const key = u < v ? `${u}-${v}` : `${v}-${u}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          edges.push({ u, v, directed: false });
+        }
       }
     }
   }
@@ -69,6 +98,31 @@ function clearSVG() {
 
 function render() {
   clearSVG();
+
+  // ✅ Create per-edge arrowheads for directed graphs
+  if (isDirected) {
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    svg.appendChild(defs);
+    for (const e of state.edges) {
+      const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+      marker.setAttribute('id', `arrow-${e.u}-${e.v}`);
+      marker.setAttribute('class', 'marker-arrow');
+      marker.setAttribute('markerWidth', '12');
+      marker.setAttribute('markerHeight', '12');
+      marker.setAttribute('refX', '33');
+      marker.setAttribute('refY', '6');
+      marker.setAttribute('orient', 'auto');
+      marker.setAttribute('markerUnits', 'userSpaceOnUse');
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M0,0 L12,6 L0,12 Z');
+      path.setAttribute('fill', '#5b6b78');
+      marker.appendChild(path);
+      defs.appendChild(marker);
+    }
+  }
+
+  // draw edges
   for (const e of state.edges) {
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', state.nodes[e.u].x);
@@ -78,8 +132,11 @@ function render() {
     line.setAttribute('class', 'edge');
     line.setAttribute('data-u', e.u);
     line.setAttribute('data-v', e.v);
+    if (e.directed) line.setAttribute('marker-end', `url(#arrow-${e.u}-${e.v})`);
     svg.appendChild(line);
   }
+
+  // draw nodes
   for (const n of state.nodes) {
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -101,13 +158,25 @@ function render() {
     g.appendChild(text);
     svg.appendChild(g);
   }
+    // ✅ Show placeholder text when no nodes exist
+  if (state.nodes.length === 0) {
+    const placeholder = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    placeholder.textContent = 'Graph';
+    placeholder.setAttribute('x', '50%');
+    placeholder.setAttribute('y', '50%');
+    placeholder.setAttribute('text-anchor', 'middle');
+    placeholder.setAttribute('dominant-baseline', 'middle');
+    placeholder.setAttribute('class', 'graph-placeholder');
+    svg.appendChild(placeholder);
+  }
+
 }
 
 function log(msg) {
   logEl.textContent = msg + '\n' + logEl.textContent;
 }
 
-// === BFS generator (supports disconnected graphs) ===
+// === BFS generator ===
 function* bfs(adj, start) {
   const n = adj.length;
   const visited = Array(n).fill(false);
@@ -133,18 +202,15 @@ function* bfs(adj, start) {
     }
   }
 
-  // Run BFS for all disconnected components
   for (let i = 0; i < n; i++) {
     const s = (i + start) % n;
-    if (!discovered[s]) {
-      yield* bfsComponent(s);
-    }
+    if (!discovered[s]) yield* bfsComponent(s);
   }
 
-  yield { type: 'done', queue: [], discovered: discovered.slice(), visited: visited.slice(), current: null };
+  yield { type: 'done', queue: [], discovered, visited, current: null };
 }
 
-// === DFS generator (supports disconnected graphs) ===
+// === DFS generator ===
 function* dfs(adj, start) {
   const n = adj.length;
   const visited = Array(n).fill(false);
@@ -173,15 +239,12 @@ function* dfs(adj, start) {
     }
   }
 
-  // Run DFS for all disconnected components
   for (let i = 0; i < n; i++) {
     const s = (i + start) % n;
-    if (!discovered[s]) {
-      yield* dfsComponent(s);
-    }
+    if (!discovered[s]) yield* dfsComponent(s);
   }
 
-  yield { type: 'done', stack: [], discovered: discovered.slice(), visited: visited.slice(), current: null };
+  yield { type: 'done', stack: [], discovered, visited, current: null };
 }
 
 function highlightEdge(u, v) {
@@ -189,9 +252,23 @@ function highlightEdge(u, v) {
   lines.forEach(line => {
     const lu = Number(line.getAttribute('data-u'));
     const lv = Number(line.getAttribute('data-v'));
-    if ((lu === u && lv === v) || (lu === v && lv === u)) {
+    if (isDirected ? (lu === u && lv === v) : ((lu === u && lv === v) || (lu === v && lv === u))) {
       line.classList.add('active-edge');
-      setTimeout(() => line.classList.remove('active-edge'), 700);
+
+      // ✅ highlight the arrowhead too
+      const markerId = line.getAttribute('marker-end')?.match(/#(arrow-\d+-\d+)/)?.[1];
+      if (markerId) {
+        const marker = document.getElementById(markerId);
+        if (marker) marker.querySelector('path').setAttribute('fill', '#fbbf24');
+      }
+
+      setTimeout(() => {
+        line.classList.remove('active-edge');
+        if (markerId) {
+          const marker = document.getElementById(markerId);
+          if (marker) marker.querySelector('path').setAttribute('fill', '#5b6b78');
+        }
+      }, 700);
     }
   });
 
@@ -392,13 +469,13 @@ addEdgeBtn.addEventListener('click', () => {
       return;
     }
     if (!adj[u].includes(v)) adj[u].push(v);
-    if (!adj[v].includes(u)) adj[v].push(u);
+    if (!isDirected && !adj[v].includes(u)) adj[v].push(u);
     adjacencyEl.value = JSON.stringify(adj);
     adjacency = adj;
     state.nodes = buildGraphFromAdj(adj).nodes;
     state.edges = buildGraphFromAdj(adj).edges;
     render();
-    log(`Added edge ${u}–${v}`);
+    log(`Added edge ${u}${isDirected ? '→' : '–'}${v}`);
   } catch (e) {
     alert('Invalid adjacency list');
   }

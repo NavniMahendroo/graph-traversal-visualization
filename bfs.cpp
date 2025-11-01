@@ -18,11 +18,10 @@ void bfs(const vector<vector<int>>& adj, int start = 0) {
         cout << "\n---\n";
     };
 
-    // Run BFS on each component
     for (int i = 0; i < n; i++) {
-        int s = (i + start) % n;  // ensures we start from 'start' first if valid
+        int s = (i + start) % n;
         if (!discovered[s]) {
-            cout << "\n=== Starting new component from " << s << " ===\n";
+            cout << "\n=== Starting new component (BFS) from " << s << " ===\n";
             q.push(s);
             discovered[s] = true;
             print_state("Init");
@@ -43,20 +42,44 @@ void bfs(const vector<vector<int>>& adj, int start = 0) {
         }
     }
 
-    cout << "\nTraversal complete for all components.\n";
+    cout << "\nBFS traversal complete.\n";
+}
+
+// DFS for directed graph
+void dfs_util(const vector<vector<int>>& adj, int u, vector<bool>& visited) {
+    visited[u] = true;
+    cout << u << " ";
+    for (int v : adj[u]) {
+        if (!visited[v])
+            dfs_util(adj, v, visited);
+    }
+}
+
+void dfs(const vector<vector<int>>& adj, int start = 0) {
+    int n = adj.size();
+    vector<bool> visited(n, false);
+
+    cout << "\n=== DFS traversal (Directed Graph) ===\n";
+    for (int i = 0; i < n; i++) {
+        int s = (i + start) % n;
+        if (!visited[s]) {
+            cout << "Starting new DFS from node " << s << ": ";
+            dfs_util(adj, s, visited);
+            cout << "\n";
+        }
+    }
+    cout << "DFS traversal complete.\n";
 }
 
 int main() {
-    // Example disconnected graph
-    vector<vector<int>> adj = {
-        {1},      // 0
-        {0},      // 1
-        {3},      // 2
-        {2},      // 3
-        {5},      // 4
-        {4}       // 5
-    };
+    // ⚠️ Add your own directed graph here
+    // Example:
+    // int n = number of nodes;
+    // vector<vector<int>> adj(n);
+    // adj[u].push_back(v); // directed edge u → v
 
-    cout << "BFS traversal (works for disconnected graphs):\n";
-    bfs(adj, 0);
+    vector<vector<int>> adj; // ← add nodes and edges before calling
+
+    // bfs(adj, 0);
+    // dfs(adj, 0);
 }

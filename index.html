@@ -12,12 +12,22 @@
     <h1>BFS / DFS Traversal Visualizer</h1>
 
     <div class="controls">
+
+      <!-- ✅ Graph Type Selector -->
+      <label for="graphType">Type:</label>
+      <select id="graphType">
+        <option value="directed">Directed</option>
+        <option value="undirected">Undirected</option>
+      </select>
+
       <button id="addNodeBtn">Add Node</button>
       <button id="addEdgeBtn">Add Edge</button>
+
       <label for="edgeU">From:</label>
       <input id="edgeU" type="number" min="0" placeholder="u">
       <label for="edgeV">To:</label>
       <input id="edgeV" type="number" min="0" placeholder="v">
+
       <label>Algorithm:
         <select id="algorithm">
           <option value="bfs">BFS (Queue)</option>
@@ -32,6 +42,7 @@
       <button id="startBtn">Start</button>
       <button id="stepBtn">Step</button>
       <button id="pauseBtn">Pause</button>
+
       <label>Speed:
         <input id="speed" type="range" min="100" max="2000" value="700" />
       </label>
@@ -48,7 +59,6 @@
           <h3>Traversal</h3>
           <div id="traversal" class="structure"></div>
         </div>
-
 
         <div class="panel">
           <h3>Log</h3>

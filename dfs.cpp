@@ -27,11 +27,13 @@ void dfs(const vector<vector<int>>& adj, int start = 0) {
             print_state("Init");
 
             while (!st.empty()) {
-                int u = st.back(); st.pop_back();
+                int u = st.back(); 
+                st.pop_back();
                 if (visited[u]) continue;
                 visited[u] = true;
                 print_state("Visit " + to_string(u));
 
+                // For directed graph: explore edges only in one direction
                 for (auto it = adj[u].rbegin(); it != adj[u].rend(); ++it) {
                     int v = *it;
                     if (!discovered[v]) {
@@ -48,16 +50,16 @@ void dfs(const vector<vector<int>>& adj, int start = 0) {
 }
 
 int main() {
-    // Example disconnected graph
-    vector<vector<int>> adj = {
-        {1, 2},     // 0
-        {0, 2},     // 1
-        {0, 1},     // 2
-        {4},        // 3
-        {3, 5},     // 4
-        {4}         // 5
-    };
+    // ⚠️ Add your own directed graph here
+    // Example usage (you can uncomment later):
+    //
+    // int n = number_of_nodes;
+    // vector<vector<int>> adj(n);
+    // adj[u].push_back(v); // directed edge u → v
+    //
+    // dfs(adj, start_node);
 
-    cout << "DFS traversal (works for disconnected graphs):\n";
-    dfs(adj, 0);
+    vector<vector<int>> adj; // ← define your graph here before calling dfs()
+
+    // dfs(adj, 0); // uncomment and call after defining your graph
 }
