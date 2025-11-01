@@ -19,6 +19,22 @@ h1 {
   margin: 0 0 12px 0; 
 }
 
+/* Header with logo */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.logo {
+  width: 56px;
+  height: 56px;
+  display: block;
+  border-radius: 8px;
+  background: transparent;
+}
+
 .controls { 
   display: flex; 
   gap: 12px; 

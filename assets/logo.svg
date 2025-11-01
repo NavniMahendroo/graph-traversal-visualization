@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Simple SVG logo representing graph nodes and a highlighted traversal path -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" aria-labelledby="title desc" role="img">
+  <title id="title">Graph Traversal Logo</title>
+  <desc id="desc">Three nodes connected by edges with a highlighted path and arrow — represents BFS/DFS traversal.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1">
+      <stop offset="0" stop-color="#071226" />
+      <stop offset="1" stop-color="#051027" />
+    </linearGradient>
+    <marker id="arrow" markerWidth="6" markerHeight="6" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 z" fill="#fbbf24" />
+    </marker>
+  </defs>
+
+  <!-- background circle for contrast -->
+  <rect width="64" height="64" rx="10" fill="url(#bg)" />
+
+  <!-- edges -->
+  <line x1="16" y1="40" x2="32" y2="24" stroke="#5b6b78" stroke-width="3" stroke-linecap="round" />
+  <line x1="32" y1="24" x2="48" y2="40" stroke="#5b6b78" stroke-width="3" stroke-linecap="round" marker-end="url(#arrow)" />
+  
+  <!-- highlighted path (overlay) -->
+  <line x1="18" y1="38" x2="32" y2="26" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" opacity="0.95" />
+
+  <!-- nodes -->
+  <circle cx="16" cy="40" r="6" fill="#0ea5a3" stroke="#075a59" stroke-width="1.5" />
+  <circle cx="32" cy="24" r="7" fill="#f59e0b" stroke="#c47a00" stroke-width="1.5" />
+  <circle cx="48" cy="40" r="6" fill="#60a5fa" stroke="#2563eb" stroke-width="1.5" />
+
+  <!-- small accent dots to imply traversal order -->
+  <circle cx="28" cy="30" r="1.25" fill="#fff" opacity="0.9" />
+  <circle cx="36" cy="34" r="1.25" fill="#fff" opacity="0.9" />
+</svg>
