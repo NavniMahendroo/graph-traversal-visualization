@@ -72,14 +72,5 @@ void dfs(const vector<vector<int>>& adj, int start = 0) {
 }
 
 int main() {
-    // ⚠️ Add your own directed graph here
-    // Example:
-    // int n = number of nodes;
-    // vector<vector<int>> adj(n);
-    // adj[u].push_back(v); // directed edge u → v
-
-    vector<vector<int>> adj; // ← add nodes and edges before calling
-
-    // bfs(adj, 0);
-    // dfs(adj, 0);
+    vector<vector<int>> adj; 
 }

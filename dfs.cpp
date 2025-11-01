@@ -50,16 +50,5 @@ void dfs(const vector<vector<int>>& adj, int start = 0) {
 }
 
 int main() {
-    // ⚠️ Add your own directed graph here
-    // Example usage (you can uncomment later):
-    //
-    // int n = number_of_nodes;
-    // vector<vector<int>> adj(n);
-    // adj[u].push_back(v); // directed edge u → v
-    //
-    // dfs(adj, start_node);
-
-    vector<vector<int>> adj; // ← define your graph here before calling dfs()
-
-    // dfs(adj, 0); // uncomment and call after defining your graph
+    vector<vector<int>> adj; 
 }
