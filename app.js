@@ -19,6 +19,11 @@ const traversalEl = document.getElementById('traversal');
 const graphTypeEl = document.getElementById('graphType');
 let isDirected = graphTypeEl.value === 'directed';
 
+// Drag state
+let draggingNode = null;
+let dragOffset = { x: 0, y: 0 };
+let isPointerDown = false;
+
 graphTypeEl.addEventListener('change', () => {
   isDirected = graphTypeEl.value === 'directed';
   log(`Graph type changed to ${isDirected ? 'Directed' : 'Undirected'}`);
@@ -53,14 +58,16 @@ let adjacency = [];
 adjacencyEl.value = JSON.stringify(adjacency);
 
 let state = {
-  nodes: [],
-  edges: [],
+  nodes: [], // array of {id, x, y, status}
+  edges: [], // array of {u, v, directed}
   generator: null,
   running: false,
   timer: null,
 };
 
 function buildGraphFromAdj(adj) {
+  // This function preserves existing node positions (if present in state.nodes)
+  // and assigns circular positions only for nodes that don't have coords yet.
   const n = adj.length;
   const nodes = [];
   const edges = [];
@@ -69,15 +76,22 @@ function buildGraphFromAdj(adj) {
   const cx = W / 2, cy = H / 2, r = Math.min(W, H) / 2 - 70;
 
   for (let i = 0; i < n; i++) {
-    const theta = (i / n) * Math.PI * 2 - Math.PI / 2;
-    const x = cx + r * Math.cos(theta);
-    const y = cy + r * Math.sin(theta);
-    nodes.push({ id: i, x, y, status: 'idle' });
+    // reuse existing coordinates if present (so dragged positions persist)
+    if (state.nodes && state.nodes[i] && typeof state.nodes[i].x === 'number' && typeof state.nodes[i].y === 'number') {
+      nodes.push({ id: i, x: state.nodes[i].x, y: state.nodes[i].y, status: state.nodes[i].status || 'idle' });
+    } else {
+      const theta = (i / Math.max(1, n)) * Math.PI * 2 - Math.PI / 2;
+      const x = cx + r * Math.cos(theta);
+      const y = cy + r * Math.sin(theta);
+      nodes.push({ id: i, x, y, status: 'idle' });
+    }
   }
 
   const seen = new Set();
   for (let u = 0; u < n; u++) {
-    for (const v of adj[u]) {
+    // guard: if adj[u] undefined, treat as empty
+    const row = adj[u] ?? [];
+    for (const v of row) {
       if (isDirected) {
         edges.push({ u, v, directed: true });
       } else {
@@ -96,11 +110,20 @@ function clearSVG() {
   while (svg.firstChild) svg.removeChild(svg.firstChild);
 }
 
+// convert mouse/client coordinates to SVG coordinates relative to svg top-left
+function svgPointFromEvent(e) {
+  const rect = svg.getBoundingClientRect();
+  return {
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top
+  };
+}
+
 function render() {
   clearSVG();
 
   // ✅ Create per-edge arrowheads for directed graphs
-  if (isDirected) {
+  if (isDirected && state.edges.length > 0) {
     const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
     svg.appendChild(defs);
     for (const e of state.edges) {
@@ -109,6 +132,7 @@ function render() {
       marker.setAttribute('class', 'marker-arrow');
       marker.setAttribute('markerWidth', '12');
       marker.setAttribute('markerHeight', '12');
+      // refX chosen to sit outside node circle (node radius ~20). adjust if you change radius.
       marker.setAttribute('refX', '33');
       marker.setAttribute('refY', '6');
       marker.setAttribute('orient', 'auto');
@@ -124,6 +148,8 @@ function render() {
 
   // draw edges
   for (const e of state.edges) {
+    // If nodes array is shorter than expected, skip drawing (safety)
+    if (!state.nodes[e.u] || !state.nodes[e.v]) continue;
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', state.nodes[e.u].x);
     line.setAttribute('y1', state.nodes[e.u].y);
@@ -136,29 +162,63 @@ function render() {
     svg.appendChild(line);
   }
 
-  // draw nodes
+  // draw nodes (as groups)
   for (const n of state.nodes) {
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('data-id', n.id);
+
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('cx', n.x);
     circle.setAttribute('cy', n.y);
     circle.setAttribute('r', 20);
     circle.setAttribute('class', `node ${n.status}`);
     circle.dataset.id = n.id;
+
+    // pointer down (start drag) — use pointer events or mouse events
+    circle.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      isPointerDown = true;
+      draggingNode = n.id;
+      // compute offset relative to node center
+      const pt = svgPointFromEvent(e);
+      dragOffset.x = state.nodes[n.id].x - pt.x;
+      dragOffset.y = state.nodes[n.id].y - pt.y;
+
+      // add a capturing listener so the window receives the mouse up even if pointer leaves svg
+      window.addEventListener('mouseup', onWindowMouseUp);
+    });
+
+    // also support touchstart
+    circle.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const fakeEvent = { clientX: touch.clientX, clientY: touch.clientY };
+      isPointerDown = true;
+      draggingNode = n.id;
+      const pt = svgPointFromEvent(fakeEvent);
+      dragOffset.x = state.nodes[n.id].x - pt.x;
+      dragOffset.y = state.nodes[n.id].y - pt.y;
+      window.addEventListener('touchend', onWindowTouchEnd);
+    });
+
+    // clicking a node sets start node input (existing behaviour)
     circle.addEventListener('click', () => {
       startNodeEl.value = n.id;
     });
+
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('x', n.x);
     text.setAttribute('y', n.y + 5);
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('fill', '#082b2b');
     text.textContent = n.id;
+
     g.appendChild(circle);
     g.appendChild(text);
     svg.appendChild(g);
   }
-    // ✅ Show placeholder text when no nodes exist
+
+  // ✅ Show placeholder text when no nodes exist
   if (state.nodes.length === 0) {
     const placeholder = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     placeholder.textContent = 'Graph';
@@ -169,7 +229,43 @@ function render() {
     placeholder.setAttribute('class', 'graph-placeholder');
     svg.appendChild(placeholder);
   }
+}
 
+// window-level mousemove/touchmove handlers update dragged node
+window.addEventListener('mousemove', (e) => {
+  if (!isPointerDown || draggingNode === null) return;
+  const pt = svgPointFromEvent(e);
+  const nx = pt.x + dragOffset.x;
+  const ny = pt.y + dragOffset.y;
+  // update node coordinates (clamp inside svg bounds if desired)
+  state.nodes[draggingNode].x = nx;
+  state.nodes[draggingNode].y = ny;
+  // re-render to update edges & nodes; this keeps other UI intact
+  render();
+});
+
+window.addEventListener('touchmove', (e) => {
+  if (!isPointerDown || draggingNode === null) return;
+  const touch = e.touches[0];
+  const fakeEvent = { clientX: touch.clientX, clientY: touch.clientY };
+  const pt = svgPointFromEvent(fakeEvent);
+  const nx = pt.x + dragOffset.x;
+  const ny = pt.y + dragOffset.y;
+  state.nodes[draggingNode].x = nx;
+  state.nodes[draggingNode].y = ny;
+  render();
+});
+
+function onWindowMouseUp() {
+  isPointerDown = false;
+  draggingNode = null;
+  window.removeEventListener('mouseup', onWindowMouseUp);
+}
+
+function onWindowTouchEnd() {
+  isPointerDown = false;
+  draggingNode = null;
+  window.removeEventListener('touchend', onWindowTouchEnd);
 }
 
 function log(msg) {
@@ -443,6 +539,7 @@ addNodeBtn.addEventListener('click', () => {
     adj.push([]);
     adjacencyEl.value = JSON.stringify(adj);
     adjacency = adj;
+    // buildGraphFromAdj will reuse existing node coords and add the new node with a circular default
     state.nodes = buildGraphFromAdj(adj).nodes;
     state.edges = buildGraphFromAdj(adj).edges;
     render();
@@ -486,6 +583,7 @@ state.edges = buildGraphFromAdj(adjacency).edges;
 render();
 
 window.addEventListener('resize', () => {
+  // keep current positions but rebuild internal arrays (will preserve dragged positions)
   state.nodes = buildGraphFromAdj(adjacency).nodes;
   state.edges = buildGraphFromAdj(adjacency).edges;
   render();
