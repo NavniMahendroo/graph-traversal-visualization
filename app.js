@@ -551,12 +551,32 @@ pauseBtn.addEventListener('click', () => {
 });
 
 loadGraphBtn.addEventListener('click', () => {
-  try { adjacency = JSON.parse(adjacencyEl.value); }
-  catch (e) { alert('Invalid JSON'); return; }
-  state.nodes = buildGraphFromAdj(adjacency).nodes;
-  state.edges = buildGraphFromAdj(adjacency).edges;
-  render();
+  try {
+    const newAdj = JSON.parse(adjacencyEl.value);
+    if (!Array.isArray(newAdj)) throw new Error("Invalid format");
+    adjacency = newAdj;
+
+    // Clear logs and traversal
+    logEl.textContent = '';
+    traversalEl.innerHTML = '';
+    structureEl.innerHTML = '';
+    traversalOrder = [];
+
+    // Completely rebuild graph
+    const newGraph = buildGraphFromAdj(adjacency);
+    state.nodes = newGraph.nodes;
+    state.edges = newGraph.edges;
+
+    // Reset layout mode (if user loads a new graph, reset dragging state)
+    nodesDragged = false;
+
+    render();
+    log("✅ Graph reloaded successfully.");
+  } catch (e) {
+    alert("Invalid adjacency list JSON. Example: [[1,2],[0,3],[0],[1]]");
+  }
 });
+
 
 speedEl.addEventListener('input', () => {
   if (state.running && state.timer) {
